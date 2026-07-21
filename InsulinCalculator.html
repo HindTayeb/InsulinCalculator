@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insulin Calculator</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --primary: #007bff;
+            --primary-hover: #0056b3;
+            --text-dark: #333333;
+            --text-light: #666666;
+            --border: #e0e0e0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .calculator-card {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h2 {
+            margin-top: 0;
+            text-align: center;
+            color: var(--text-dark);
+            font-size: 24px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .result-box {
+            margin-top: 24px;
+            padding: 20px;
+            background-color: #eaf4ff;
+            border-radius: 8px;
+            text-align: center;
+            display: none; /* Hidden until calculated */
+        }
+
+        .result-box.active {
+            display: block;
+        }
+
+        .result-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+
+        .breakdown {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 10px;
+        }
+
+        .disclaimer {
+            font-size: 11px;
+            color: #999;
+            text-align: center;
+            margin-top: 20px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calculator-card">
+        <h2>Insulin Dose</h2>
+        
+        <div class="input-group">
+            <label for="carbs">Carbs Eaten (grams)</label>
+            <input type="number" id="carbs" placeholder="e.g., 45" min="0" step="1">
+        </div>
+
+        <div class="input-group">
+            <label for="current-bg">Current Blood Sugar</label>
+            <input type="number" id="current-bg" placeholder="e.g., 160" min="0" step="1">
+        </div>
+
+        <div class="input-group">
+            <label for="target-bg">Target Blood Sugar</label>
+            <input type="number" id="target-bg" value="100" min="0" step="1">
+        </div>
+
+        <button onclick="calculateInsulin()">Calculate Dose</button>
+
+        <div class="result-box" id="result-box">
+            <div style="font-size: 14px; color: var(--text-light);">Suggested Dose</div>
+            <div class="result-value"><span id="total-dose">0</span> Units</div>
+            
+            <div class="breakdown">
+                <strong>Breakdown:</strong><br>
+                Carb Insulin: <span id="carb-dose">0</span> u 
+                (1:${10} ratio)<br>
+                Correction: <span id="correction-dose">0</span> u 
+                (1:${40} ratio)
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            Settings hardcoded: 1u per 10g carbs | 1u per 40mg/dL correction.<br>
+            <em>Always double-check your math before dosing.</em>
+        </div>
+    </div>
+
+    <script>
+        function calculateInsulin() {
+            // Your personal ratios
+            const carbRatio = 10;
+            const correctionFactor = 40;
+
+            // Get inputs
+            const carbs = parseFloat(document.getElementById('carbs').value) || 0;
+            const currentBg = parseFloat(document.getElementById('current-bg').value) || 0;
+            const targetBg = parseFloat(document.getElementById('target-bg').value) || 100;
+
+            // Calculate Carb Insulin (Carbs / 10)
+            let carbInsulin = carbs / carbRatio;
+
+            // Calculate Correction Insulin ((Current BG - Target BG) / 40)
+            let correctionInsulin = 0;
+            if (currentBg > 0) { // Only correct if a blood sugar was actually entered
+                correctionInsulin = (currentBg - targetBg) / correctionFactor;
+            }
+
+            // Total Insulin
+            let totalInsulin = carbInsulin + correctionInsulin;
+
+            // Prevent negative dosing (if blood sugar is low but no carbs are eaten)
+            if (totalInsulin < 0) totalInsulin = 0;
+
+            // Format to 1 decimal place (e.g., 4.5 units)
+            document.getElementById('total-dose').innerText = totalInsulin.toFixed(1);
+            document.getElementById('carb-dose').innerText = carbInsulin.toFixed(1);
+            
+            // For correction, if it's negative (low blood sugar), we still show the breakdown so you know it subtracted
+            document.getElementById('correction-dose').innerText = correctionInsulin.toFixed(1);
+
+            // Show the result box
+            document.getElementById('result-box').classList.add('active');
+        }
+    </script>
+</body>
+</html>
